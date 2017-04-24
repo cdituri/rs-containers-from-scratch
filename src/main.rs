@@ -1,5 +1,7 @@
 extern crate libc;
 
+const CHROOT_DIR: &'static str = "/home/vagrant/xenial";
+
 use std::env;
 use std::io::prelude::*;
 
@@ -76,33 +78,27 @@ fn child () {
 
   cg();
 
-  let rootdir = "/";
-  let procfs = "proc";
-  let tmpfs = "tmpfs";
   let hostname = "container";
-  let chroot = CString::new("/").unwrap();
+  let chroot   = CString::new(CHROOT_DIR).unwrap();
+  let rootdir  = CString::new("/").unwrap();
+  let procfs   = CString::new("proc").unwrap();
+  let tmpfs    = CString::new("tmpfs").unwrap();
 
   unsafe {
     println!("Child changing to hostname: {:?}", hostname);
     libc::sethostname(hostname.as_ptr() as *const i8, hostname.len());
 
-    println!("Child chroot to directory: {:?}", &*chroot);
+    println!("Child chroot to directory: {:?}", chroot.to_str().unwrap());
     libc::chroot(chroot.as_ptr());
 
-    println!("Child chdir to: {:?}", rootdir.as_ptr() as *const i8);
-    libc::chdir(rootdir.as_ptr() as *const i8);
+    println!("Child chdir to new root: {:?}", rootdir.to_str().unwrap());
+    libc::chdir(rootdir.as_ptr());
 
-    println!("Child mounting: {:?}", procfs);
-    libc::mount(procfs.as_ptr() as *const i8,
-                procfs.as_ptr() as *const i8,
-                procfs.as_ptr() as *const i8,
-                0, std::ptr::null());
+    println!("Child mounting: {:?}", procfs.to_str().unwrap());
+    libc::mount(procfs.as_ptr(), "/proc".as_ptr() as *const i8, procfs.as_ptr(), 0, std::ptr::null());
 
-    println!("Child mounting: {:?}", tmpfs);
-    libc::mount(tmpfs.as_ptr() as *const i8,
-                tmpfs.as_ptr() as *const i8,
-                tmpfs.as_ptr() as *const i8,
-                0, std::ptr::null());
+    println!("Child mounting: {:?}", tmpfs.to_str().unwrap());
+    libc::mount(tmpfs.as_ptr(), "/tmp".as_ptr() as *const i8, tmpfs.as_ptr(), 0, std::ptr::null());
   }
 
   println!("Child Running: {:?} {:?}", cmd, cmd_args);
@@ -115,8 +111,8 @@ fn child () {
       .unwrap();
 
   unsafe {
-    libc::umount(procfs.as_ptr() as *const i8);
-    libc::umount(tmpfs.as_ptr() as *const i8);
+    libc::umount("/proc".as_ptr() as *const i8);
+    libc::umount("/tmp".as_ptr() as *const i8);
   }
 }
 
