@@ -1,0 +1,7 @@
+[package]
+name = "rust-containers"
+version = "0.1.0"
+authors = ["Chris Dituri <csdituri@gmail.com>"]
+
+[dependencies]
+libc = "0.2"
